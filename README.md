@@ -1,45 +1,45 @@
 # PortaleArgo API
+
 [![Latest Release](https://img.shields.io/github/v/release/DanielVd/portaleargo-api)](https://github.com/DanielVd/portaleargo-api/releases/latest)
+
+API helpers and integration utilities for Portale Argo.
 
 ## Table of Contents
 
-- [Overview](#overview)
 - [Features](#features)
 - [Requirements](#requirements)
 - [Installation](#installation)
 - [Quick Start](#quick-start)
 - [Configuration](#configuration)
-- [Commands/Tools](#commandstools)
 - [Troubleshooting](#troubleshooting)
-- [Security Notes](#security-notes)
-- [Contributing](#contributing)
-- [License](#license)
-
-## Overview
-
-> Update with 1-2 sentence project purpose.
 
 ## Features
 
-> Key capabilities list.
+- API integration helpers
+- Reusable utilities for Argo workflows
 
 ## Requirements
 
+- Node.js 18+
+
 ## Installation
+
+```bash
+npm install
+npm run build
+```
 
 ## Quick Start
 
+```bash
+npm start
+```
+
 ## Configuration
 
-## Commands/Tools
+Use environment variables for credentials and API endpoints.
 
 ## Troubleshooting
 
-## Security Notes
-
-## Contributing
-
-## License
-
-## Existing Notes
-
+- 401/403: verify account permissions
+- request errors: check endpoint and payload format
