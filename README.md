@@ -1,6 +1,7 @@
 # PortaleArgo API
 
 `portaleargo-api` è un modulo Node.js che fornisce un'interfaccia per interagire con il registro elettronico Argo.
+[![Latest Release](https://img.shields.io/github/v/release/DanielVd/portaleargo-api)](https://github.com/DanielVd/portaleargo-api/releases/latest)
 
 ## Installazione
 
