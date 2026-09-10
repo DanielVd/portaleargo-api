@@ -367,6 +367,20 @@ export abstract class BaseClient {
 	}
 
 	/**
+	 * Scarica un allegato della bacheca.
+	 *
+	 * Il link restituito da Argo è temporaneo, quindi viene richiesto e
+	 * consumato immediatamente.
+	 *
+	 * @param uid - L'uid dell'allegato
+	 * @returns La risposta HTTP contenente il file
+	 */
+	async downloadAllegato(uid: string) {
+		const url = await this.getLinkAllegato(uid);
+		return this.downloadSignedUrl(url);
+	}
+
+	/**
 	 * Ottieni il link per scaricare un allegato della bacheca alunno.
 	 * @param uid - l'uid dell'allegato
 	 * @param pkScheda - L'id del profilo
@@ -384,6 +398,24 @@ export abstract class BaseClient {
 
 		if (!download.success) throw new Error(download.msg);
 		return download.url;
+	}
+
+	/**
+	 * Scarica un allegato della bacheca alunno.
+	 *
+	 * Il link restituito da Argo è temporaneo, quindi viene richiesto e
+	 * consumato immediatamente.
+	 *
+	 * @param uid - L'uid dell'allegato
+	 * @param pkScheda - L'id del profilo
+	 * @returns La risposta HTTP contenente il file
+	 */
+	async downloadAllegatoStudente(
+		uid: string,
+		pkScheda = this.profile?.scheda.pk,
+	) {
+		const url = await this.getLinkAllegatoStudente(uid, pkScheda);
+		return this.downloadSignedUrl(url);
 	}
 
 	/**
@@ -608,6 +640,20 @@ export abstract class BaseClient {
 		);
 		void this.dataProvider?.write("dashboard", this.dashboard);
 		return this.dashboard;
+	}
+
+	/**
+	 * Scarica immediatamente un URL firmato restituito da Argo.
+	 */
+	private async downloadSignedUrl(url: string) {
+		const response = await this.fetch(url);
+
+		if (!response.ok)
+			throw new Error(
+				`Attachment download failed: HTTP ${response.status} ${response.statusText}`,
+			);
+
+		return response;
 	}
 
 	private async getProfilo() {
