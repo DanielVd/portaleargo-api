@@ -8,6 +8,17 @@ await client.login();
 const uid = client.dashboard?.bacheca.find((e) => e.listaAllegati.length)
 	?.listaAllegati[0]?.pk;
 
+if (uid) {
+	const response = await client.downloadAllegato(uid);
+	const data = await response.arrayBuffer();
+
+	if (!data.byteLength) throw new Error("Downloaded attachment is empty");
+
+	console.log(
+		`Attachment download OK: ${response.status} ${response.headers.get("content-type") ?? "unknown"} ${data.byteLength} bytes`,
+	);
+}
+
 await Promise.allSettled([
 	client.getCorsiRecupero(),
 	client
@@ -24,7 +35,6 @@ await Promise.allSettled([
 	client.getRicevimenti(),
 	client.getTasse(),
 	client.getVotiScrutinio(),
-	uid && client.getLinkAllegato(uid),
 ]);
 await client.logOut();
 console.timeEnd();

@@ -9,6 +9,7 @@ import {
 	interceptors,
 	Pool,
 	type Dispatcher,
+	type Request,
 	type RequestInfo,
 	type RequestInit,
 	type RetryHandler,
@@ -114,11 +115,22 @@ export class Client extends BaseClient {
 	}
 
 	createFetch(): typeof window.fetch {
-		return (info, init) =>
-			fetch(info as RequestInfo, {
-				dispatcher: this.dispatcher,
+		return (info, init) => {
+			const requestInfo = info as RequestInfo;
+			const requestUrl =
+				typeof requestInfo === "string"
+					? new URL(requestInfo, BaseClient.BASE_URL)
+					: requestInfo instanceof URL
+						? requestInfo
+						: new URL((requestInfo as Request).url);
+
+			return fetch(requestInfo, {
+				...(requestUrl.origin === BaseClient.BASE_URL
+					? { dispatcher: this.dispatcher }
+					: {}),
 				...(init as RequestInit),
 			}) as unknown as Promise<Response>;
+		};
 	}
 
 	async getCode() {
