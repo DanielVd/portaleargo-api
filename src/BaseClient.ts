@@ -6,6 +6,7 @@ import type {
 	APIDashboard,
 	APIDettagliProfilo,
 	APIDownloadAllegato,
+	APIPresavisioneAdesione,
 	APILogin,
 	APIOrarioGiornaliero,
 	APIPCTO,
@@ -566,6 +567,37 @@ export abstract class BaseClient {
 
 		if (!bacheca.success) throw new Error(bacheca.msg!);
 		return handleOperation(bacheca.data.bachecaAlunno);
+	}
+
+	/**
+	 * Conferma la presa visione di un avviso della bacheca.
+	 *
+	 * Argo richiede il download di almeno un allegato prima della conferma.
+	 * L'allegato viene quindi scaricato realmente tramite il relativo URL
+	 * firmato prima di chiamare `presavisioneadesione`.
+	 *
+	 * @param pkScheda - L'id del profilo
+	 * @param prgMessaggio - Il pk dell'avviso
+	 * @param allegatoUid - Il pk di un allegato dell'avviso
+	 * @returns Il risultato della conferma
+	 */
+	async confirmPresaVisioneBacheca(
+		pkScheda: string,
+		prgMessaggio: string,
+		allegatoUid: string,
+	) {
+		this.checkReady();
+
+		const attachment = await this.downloadAllegato(allegatoUid);
+		await attachment.arrayBuffer();
+
+		const result = await this.apiRequest<APIPresavisioneAdesione>(
+			"presavisioneadesione",
+			{ body: { pkScheda, prgMessaggio } },
+		);
+
+		if (!result.success) throw new Error(result.message ?? result.msg ?? "Presa visione fallita");
+		return result;
 	}
 
 	/**

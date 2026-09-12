@@ -650,3 +650,10 @@ export type APIBacheca = APIResponse<
 export type APIBachecaAlunno = APIResponse<
 	Pick<APIDashboard["data"]["dati"][number], "bachecaAlunno">
 >;
+
+export type APIPresavisioneAdesione = {
+	[key: string]: Json;
+	success: boolean;
+	msg?: string | null;
+	message?: string | null;
+};
