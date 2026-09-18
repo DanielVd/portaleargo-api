@@ -7,6 +7,13 @@ export type FamigliaAPIResponse<T = Json> = {
 	message?: string | null;
 };
 
+export type FamigliaAPIMutationResponse = {
+	[key: string]: Json;
+	success: boolean;
+	msg?: string | null;
+	message?: string | null;
+};
+
 export type FamigliaAPILogin = FamigliaAPIResponse<
 	{
 
