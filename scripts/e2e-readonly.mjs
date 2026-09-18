@@ -103,17 +103,31 @@ const probe = async (name, path, body) => {
 	return { response, payload };
 };
 
-const studentBoard = await probe(
-	"storicobachecaalunno",
-	"famiglia/storicobachecaalunno",
-	{ pkScheda },
-);
+const curriculum = results.get("getCurriculum");
+const schede = [
+	pkScheda,
+	...(Array.isArray(curriculum)
+		? curriculum
+				.map((entry) =>
+					entry && typeof entry === "object" ? entry.pkScheda : undefined,
+				)
+				.filter((value) => typeof value === "string")
+		: []),
+].filter((value, index, values) => values.indexOf(value) === index);
 
-const studentBoardItems = studentBoard.payload?.data?.bachecaAlunno;
-if (Array.isArray(studentBoardItems) && studentBoardItems.length > 0)
-	console.log(
-		`🔎 storicobachecaalunno first item: ${JSON.stringify(schema(studentBoardItems[0]))}`,
+for (const [index, schedaPk] of schede.entries()) {
+	const studentBoard = await probe(
+		`storicobachecaalunno[${index}]`,
+		"famiglia/storicobachecaalunno",
+		{ pkScheda: schedaPk },
 	);
+
+	const studentBoardItems = studentBoard.payload?.data?.bachecaAlunno;
+	if (Array.isArray(studentBoardItems) && studentBoardItems.length > 0)
+		console.log(
+			`🔎 storicobachecaalunno[${index}] first item: ${JSON.stringify(schema(studentBoardItems[0]))}`,
+		);
+}
 
 await probe("pcto", "famiglia/pcto", { pkScheda });
 
