@@ -7,8 +7,38 @@ const client = new Client({
 
 await client.bootstrapSession();
 
+const schemaForDashboard = (value) => {
+	if (value === null || value === undefined) return String(value);
+	if (Array.isArray(value))
+		return {
+			type: "array",
+			length: value.length,
+			item:
+				value.length > 0 && value[0] && typeof value[0] === "object"
+					? Object.fromEntries(
+							Object.entries(value[0]).map(([key, child]) => [
+								key,
+								Array.isArray(child)
+									? `array(${child.length})`
+									: child === null
+										? "null"
+										: typeof child,
+							]),
+						)
+					: "unknown",
+		};
+	return typeof value === "object"
+		? Object.keys(value)
+		: typeof value;
+};
+
 const profile = await client.getProfilo();
 const pkScheda = profile.scheda.pk;
+const dashboard = await client.getDashboard();
+
+console.log(
+	`🔎 dashboard.bachecaAlunno: ${JSON.stringify(schemaForDashboard(dashboard.bachecaAlunno))}`,
+);
 
 const checks = [
 	["getDettagliProfilo", () => client.getDettagliProfilo()],
