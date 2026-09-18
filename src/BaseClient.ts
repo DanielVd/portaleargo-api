@@ -879,9 +879,13 @@ export abstract class BaseClient {
 	/**
 	 * Conferma la presa visione di un avviso della bacheca.
 	 *
+	 * Argo richiede che almeno un allegato dell'avviso venga scaricato
+	 * prima della conferma. Se l'uid non viene fornito, viene risolto
+	 * automaticamente il primo allegato dell'avviso dalla bacheca.
+	 *
 	 * @param pkScheda - L'id del profilo
 	 * @param prgMessaggio - Il pk dell'avviso
-	 * @param allegatoUid - Parametro legacy mantenuto per compatibilità; ignorato dalla API Famiglia
+	 * @param allegatoUid - Il pk di un allegato dell'avviso; opzionale
 	 * @returns Il risultato della conferma
 	 */
 	async confirmPresaVisioneBacheca(
@@ -889,9 +893,28 @@ export abstract class BaseClient {
 		prgMessaggio: string,
 		allegatoUid?: string,
 	) {
-		void allegatoUid;
-
 		if (!this.apiSession) await this.bootstrapSession();
+
+		let resolvedAllegatoUid = allegatoUid;
+
+		if (!resolvedAllegatoUid) {
+			const notice = (await this.getStoricoBacheca(pkScheda)).find(
+				({ pk }) => pk === prgMessaggio,
+			);
+
+			if (!notice)
+				throw new Error("Famiglia bulletin item not found");
+
+			resolvedAllegatoUid = notice.listaAllegati[0]?.pk;
+
+			if (!resolvedAllegatoUid)
+				throw new Error(
+					"Famiglia bulletin read confirmation requires at least one attachment",
+				);
+		}
+
+		const attachment = await this.downloadAllegato(resolvedAllegatoUid);
+		await attachment.arrayBuffer();
 
 		const result = await this.famigliaRequest<FamigliaAPIMutationResponse>(
 			"famiglia/presavisione",

@@ -77,7 +77,7 @@ await client.giustificaEventi(eventIds, "2026-09-18", "Motivazione");
 
 These calls modify data in Argo and should only be executed deliberately.
 
-The legacy `allegatoUid` argument of `confirmPresaVisioneBacheca()` is accepted only for backward compatibility. The Famiglia web application does not require downloading an attachment before confirming read status.
+`confirmPresaVisioneBacheca()` downloads an attachment before confirming read status because the Famiglia backend can require at least one attachment download. Callers may provide `allegatoUid`; when it is omitted, the client resolves and downloads the first attachment of the notice automatically.
 
 ## PCTO
 
