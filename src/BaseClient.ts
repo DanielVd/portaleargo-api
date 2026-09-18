@@ -273,7 +273,10 @@ export abstract class BaseClient {
 	 * utilizzando il Bearer OAuth già ottenuto dal client.
 	 */
 	async bootstrapSession() {
+		await this.refreshToken();
+
 		const login = await this.famigliaRequest<FamigliaAPILogin>("login", {
+			method: "POST",
 			body: {},
 		});
 
@@ -317,6 +320,7 @@ export abstract class BaseClient {
 		const dashboard = await this.famigliaRequest<FamigliaAPIDashboard>(
 			"dashboard/dashboard",
 			{
+				method: "POST",
 				body: {
 					dataultimoaggiornamento: formatDate(
 						this.famigliaProfile!.anno.dataInizio,
@@ -432,7 +436,7 @@ export abstract class BaseClient {
 					"exp-bearer": formatDate(this.token.expireDate),
 					"ts-app": formatDate(date),
 					proc: "initState_global_random_12345",
-					username: this.loginData?.username,
+					username: this.loginData?.username ?? this.credentials?.username,
 				},
 				noWait: true,
 			});
@@ -521,6 +525,7 @@ export abstract class BaseClient {
 			await this.famigliaRequest<FamigliaAPIOrarioGiornaliero>(
 				"famiglia/orario-giorno",
 				{
+					method: "POST",
 					body: {
 						datGiorno: formatDate(
 							`${date?.year ?? now.getFullYear()}-${
@@ -551,6 +556,7 @@ export abstract class BaseClient {
 			await this.famigliaRequest<FamigliaAPIDownloadAllegato>(
 				"famiglia/downloadallegatobacheca",
 				{
+					method: "POST",
 					body: { uid },
 				},
 			);
@@ -741,7 +747,7 @@ export abstract class BaseClient {
 	 * @returns I dati
 	 */
 	async getCorsiRecupero<T extends FamigliaAPICorsiRecupero["data"]>(
-		pkScheda = this.profile?.scheda.pk,
+		pkScheda?: string,
 		old?: T,
 	) {
 		void pkScheda;
@@ -771,7 +777,7 @@ export abstract class BaseClient {
 	 * @param pkScheda - L'id del profilo
 	 * @returns I dati
 	 */
-	async getCurriculum(pkScheda = this.profile?.scheda.pk) {
+	async getCurriculum(pkScheda?: string) {
 		void pkScheda;
 
 		if (!this.apiSession) await this.bootstrapSession();
@@ -804,6 +810,7 @@ export abstract class BaseClient {
 		const bacheca = await this.famigliaRequest<FamigliaAPIBacheca>(
 			"famiglia/storicobacheca",
 			{
+				method: "POST",
 				body: { pkScheda },
 			},
 		);
