@@ -188,6 +188,18 @@ export type FamigliaAPIDownloadAllegato =
 			url: string;
 	  };
 
+export type FamigliaAPIRicevutaTelematica =
+	| {
+			success: false;
+			msg?: string | null;
+			message?: string | null;
+	  }
+	| {
+			success: true;
+			fileName: string;
+			url: string;
+	  };
+
 export type FamigliaAPITassa = {
 	nominativo: string;
 	descrizione: string;
