@@ -9,7 +9,6 @@ import type {
 	APIResponse,
 	APIRicevutaTelematica,
 	APIToken,
-	APIVotiScrutinio,
 	APIWhat,
 	ClientOptions,
 	Credentials,
@@ -28,6 +27,7 @@ import type {
 	FamigliaAPIRicevimenti,
 	FamigliaAPICorsiRecupero,
 	FamigliaAPITasse,
+	FamigliaAPIVotiScrutinio,
 	ReadyClient,
 	Token,
 } from "./types";
@@ -638,12 +638,21 @@ export abstract class BaseClient {
 	 * @returns I dati
 	 */
 	async getVotiScrutinio() {
-		this.checkReady();
-		const voti = await this.apiRequest<APIVotiScrutinio>("votiscrutinio", {
-			body: {},
-		});
+		if (!this.apiSession) await this.bootstrapSession();
 
-		if (!voti.success) throw new Error(voti.msg!);
+		const voti = await this.famigliaRequest<FamigliaAPIVotiScrutinio>(
+			"famiglia/votiscrutinio",
+			{
+				method: "POST",
+				body: {},
+			},
+		);
+
+		if (!voti.success)
+			throw new Error(
+				voti.message ?? voti.msg ?? "Famiglia scrutiny grades request failed",
+			);
+
 		return voti.data.votiScrutinio[0]?.periodi;
 	}
 
