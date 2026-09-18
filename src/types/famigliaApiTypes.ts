@@ -177,6 +177,21 @@ export type FamigliaAPIBacheca = FamigliaAPIResponse<{
 	bacheca: FamigliaBachecaItem[];
 }>;
 
+export type FamigliaBachecaAlunnoItem = {
+	operazione: string;
+	nomeFile: string;
+	datEvento: string;
+	messaggio: string;
+	data: string;
+	flgDownloadGenitore: string;
+	isPresaVisione: boolean;
+	pk: string;
+};
+
+export type FamigliaAPIBachecaAlunno = FamigliaAPIResponse<{
+	bachecaAlunno: FamigliaBachecaAlunnoItem[];
+}>;
+
 export type FamigliaAPIDownloadAllegato =
 	| {
 			success: false;
