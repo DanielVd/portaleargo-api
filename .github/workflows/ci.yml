@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - feat/modern-api
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  static-checks:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps --ignore-scripts
+
+      - name: ESLint
+        run: npx eslint src --max-warnings=0
+
+      - name: TypeScript
+        run: npx tsc --noEmit
+
+      - name: E2E runner syntax
+        run: node --check scripts/e2e-readonly.mjs
+
+      - name: Build
+        run: npm run build
+
+  famiglia-readonly-e2e:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/feat/modern-api'
+    needs: static-checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps --ignore-scripts
+
+      - name: Build
+        run: npm run build
+
+      - name: Run Famiglia read-only E2E
+        env:
+          CODICE_SCUOLA: ${{ secrets.ARGO_SCHOOL_CODE }}
+          NOME_UTENTE: ${{ secrets.ARGO_USERNAME }}
+          PASSWORD: ${{ secrets.ARGO_PASSWORD }}
+        run: node scripts/e2e-readonly.mjs
