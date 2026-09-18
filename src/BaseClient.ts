@@ -64,19 +64,19 @@ export abstract class BaseClient {
 	loginData?: APILogin["data"][number];
 
 	/**
-	 * Dati della sessione applicativa della nuova API Famiglia WEB.
+	 * Dati della sessione applicativa della API Famiglia.
 	 *
 	 * Restano separati da loginData finché la migrazione non è completa.
 	 */
 	apiSession?: FamigliaAPILogin["data"][number];
 
 	/**
-	 * Profilo restituito dalla nuova API Famiglia WEB.
+	 * Profilo restituito dalla API Famiglia.
 	 */
 	famigliaProfile?: FamigliaAPIProfilo["data"];
 
 	/**
-	 * Dashboard restituita dalla nuova API Famiglia WEB.
+	 * Dashboard restituita dalla API Famiglia.
 	 *
 	 * Resta separata da dashboard finché la migrazione non è completa.
 	 */
@@ -206,7 +206,7 @@ export abstract class BaseClient {
 	}
 
 	/**
-	 * Effettua una richiesta alla nuova API Famiglia WEB.
+	 * Effettua una richiesta alla API Famiglia.
 	 */
 	famigliaRequest<T extends Json>(
 		path: string,
@@ -269,7 +269,7 @@ export abstract class BaseClient {
 	}
 
 	/**
-	 * Inizializza la sessione applicativa della nuova API Famiglia WEB
+	 * Inizializza la sessione applicativa della API Famiglia
 	 * utilizzando il Bearer OAuth già ottenuto dal client.
 	 */
 	async bootstrapSession() {
@@ -291,7 +291,7 @@ export abstract class BaseClient {
 	}
 
 	/**
-	 * Recupera il profilo dalla nuova API Famiglia WEB.
+	 * Recupera il profilo dalla API Famiglia.
 	 */
 	async getProfilo() {
 		if (!this.apiSession) await this.bootstrapSession();
@@ -308,7 +308,7 @@ export abstract class BaseClient {
 	}
 
 	/**
-	 * Recupera la dashboard dalla nuova API Famiglia WEB.
+	 * Recupera la dashboard dalla API Famiglia.
 	 */
 	async getDashboard() {
 		if (!this.apiSession) await this.bootstrapSession();
