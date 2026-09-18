@@ -100,10 +100,9 @@ const receiptTax =
 			)
 		: undefined;
 
-if (receiptTax)
-	await probe("ricevutatelematica", "pagamenti/ricevutatelematica", {
-		iuv: receiptTax.iuv,
-	});
-else console.log("ℹ️ ricevutatelematica: SKIP_NO_RECEIPT");
+if (receiptTax) {
+	const receipt = await client.getRicevuta(receiptTax.iuv);
+	console.log(`✅ getRicevuta: ${JSON.stringify(schema(receipt))}`);
+} else console.log("ℹ️ getRicevuta: SKIP_NO_RECEIPT");
 
 console.log("✅ Famiglia read-only E2E completed");
