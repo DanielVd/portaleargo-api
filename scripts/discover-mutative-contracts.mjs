@@ -13,6 +13,8 @@ const needles = [
 	"presaadesione",
 	"presavisione",
 	"presavisionenote",
+	"downloadallegatobacheca",
+	"downloadallegatobachecaalunno",
 ];
 
 const htmlResponse = await fetch(base);
@@ -44,6 +46,12 @@ while (queue.length > 0 && seen.size < 300) {
 	if (!response.ok) continue;
 
 	const body = await response.text();
+
+	if (body.includes("downloadallegatobacheca")) {
+		console.log(
+			`\n### BACHECA SERVICE CANDIDATE @ ${url}\n${body.slice(0, 12000).replace(/\\s+/g, " ")}`,
+		);
+	}
 
 	for (const needle of needles) {
 		let offset = 0;
