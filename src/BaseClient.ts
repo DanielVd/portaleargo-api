@@ -506,11 +506,6 @@ export abstract class BaseClient {
 	/**
 	 * Ottieni l'orario giornaliero.
 	 * @param date - Il giorno dell'orario
-	 * @returns I dati
-	 */
-	/**
-	 * Ottieni l'orario giornaliero dalla nuova API Famiglia WEB.
-	 * @param date - Il giorno dell'orario
 	 * @returns Le lezioni della giornata
 	 */
 	async getOrarioGiornaliero(date?: {
