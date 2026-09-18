@@ -116,7 +116,6 @@ const schede = [
 ].filter((value, index, values) => values.indexOf(value) === index);
 
 let studentAttachmentCandidate;
-let readStudentNoticeCandidate;
 
 for (const [index, schedaPk] of schede.entries()) {
 	const studentBoardItems = await client.getStoricoBachecaAlunno(schedaPk);
@@ -136,14 +135,6 @@ for (const [index, schedaPk] of schede.entries()) {
 				uid: firstItem.pk,
 				pkScheda: schedaPk,
 			};
-
-		const alreadyRead = studentBoardItems.find(
-			(item) => item?.isPresaVisione === true && typeof item.pk === "string",
-		);
-		if (!readStudentNoticeCandidate && alreadyRead)
-			readStudentNoticeCandidate = {
-				prgMessaggio: alreadyRead.pk,
-			};
 	}
 }
 
@@ -161,32 +152,6 @@ if (studentAttachmentCandidate) {
 		`✅ downloadAllegatoStudente: ${response.status} ${response.headers.get("content-type") ?? "unknown"} ${data.byteLength} bytes`,
 	);
 } else console.log("ℹ️ downloadAllegatoStudente: SKIP_NO_ATTACHMENT");
-
-const bacheca = results.get("getStoricoBacheca");
-const readBachecaNotice =
-	Array.isArray(bacheca)
-		? bacheca.find(
-				(item) => item?.isPresaVisione === true && typeof item.pk === "string",
-			)
-		: undefined;
-
-if (readBachecaNotice)
-	await probe("idempotent-presavisione", "famiglia/presavisione", {
-		pkScheda,
-		prgMessaggio: readBachecaNotice.pk,
-	});
-else console.log("ℹ️ idempotent-presavisione: SKIP_NO_ALREADY_READ_NOTICE");
-
-if (readStudentNoticeCandidate)
-	await probe(
-		"idempotent-presavisionebachecaalunno",
-		"famiglia/presavisionebachecaalunno",
-		readStudentNoticeCandidate,
-	);
-else
-	console.log(
-		"ℹ️ idempotent-presavisionebachecaalunno: SKIP_NO_ALREADY_READ_NOTICE",
-	);
 
 await probe("pcto", "famiglia/pcto", { pkScheda });
 
