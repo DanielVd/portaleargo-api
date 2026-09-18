@@ -5,7 +5,6 @@ const client = new Client({
 	debug: false,
 });
 
-await client.getToken();
 await client.bootstrapSession();
 
 const profile = await client.getProfilo();
