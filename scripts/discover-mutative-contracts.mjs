@@ -1,4 +1,4 @@
-const base = "https://didattica.portaleargo.it/famiglia/";
+const base = "https://www.portaleargo.it/famiglia/";
 
 const htmlResponse = await fetch(base);
 if (!htmlResponse.ok)
