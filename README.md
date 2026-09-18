@@ -134,6 +134,6 @@ The automated E2E does not execute state-changing operations.
 
 ## Development
 
-Keep the Famiglia API as the canonical implementation source. Do not add private Billing-style endpoints, browser scraping, or guessed Argo contracts when an official endpoint or observable frontend contract is available.
+Keep the Famiglia API as the canonical implementation source. Do not add browser scraping, private endpoints, or guessed Argo contracts when an official endpoint or observable frontend contract is available.
 
 For response structures that cannot be verified, prefer a conservative generic type and refine it after observing a real response.
