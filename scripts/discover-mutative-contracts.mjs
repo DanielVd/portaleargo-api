@@ -1,106 +1,54 @@
 const base = "https://www.portaleargo.it/famiglia/";
 
-const needles = [
-	"storicobacheca",
-	"bachecaAlunno",
-	"bachecaalunno",
-	"adesione",
-	"visione",
-	"presaVisione",
-	"presaAdesione",
-	"presavisioneadesione",
-	"presavisionebachecaalunno",
-	"presaadesione",
+const getText = async (url) => {
+	const response = await fetch(url);
+	if (!response.ok) throw new Error(`${url}: HTTP ${response.status}`);
+	return response.text();
+};
+
+const html = await getText(base);
+const mainSrc = html.match(/<script[^>]+src=["']([^"']*main-[^"']+\.js)["']/i)?.[1];
+if (!mainSrc) throw new Error("main bundle not found");
+
+const mainUrl = new URL(mainSrc, base).href;
+const main = await getText(mainUrl);
+
+const bachecaPath = main.match(/["']([^"']*BachecaView-[^"']+\.js)["']/)?.[1];
+if (!bachecaPath) throw new Error("BachecaView bundle not found");
+
+const bachecaUrl = new URL(bachecaPath, mainUrl).href;
+const bacheca = await getText(bachecaUrl);
+
+const dashboardPath =
+	bacheca.match(/from["']\.\/(dashboard-[^"']+\.js)["']/)?.[1] ??
+	bacheca.match(/["']\.\/(dashboard-[^"']+\.js)["']/)?.[1];
+if (!dashboardPath) throw new Error("dashboard service import not found");
+
+const dashboardUrl = new URL(dashboardPath, bachecaUrl).href;
+const dashboard = await getText(dashboardUrl);
+
+console.log(`main: ${mainUrl}`);
+console.log(`bacheca: ${bachecaUrl}`);
+console.log(`dashboard: ${dashboardUrl}`);
+console.log(`dashboard bytes: ${dashboard.length}`);
+
+for (const needle of [
+	"presaVisioneBacheca",
+	"presaAdesioneBacheca",
+	"downloadAllegatoBacheca",
 	"presavisione",
-	"presavisionenote",
-	"downloadallegatobacheca",
-	"downloadallegatobachecaalunno",
-];
-
-const htmlResponse = await fetch(base);
-if (!htmlResponse.ok)
-	throw new Error(`Frontend HTTP ${htmlResponse.status}`);
-
-const html = await htmlResponse.text();
-const initial = [...html.matchAll(/<script[^>]+src=["']([^"']+)["']/gi)]
-	.map((match) => new URL(match[1], base).href);
-
-console.log(`frontend scripts: ${initial.length}`);
-for (const url of initial) console.log(`script: ${url}`);
-
-const queue = [...initial];
-const seen = new Set();
-let matches = 0;
-
-while (queue.length > 0 && seen.size < 300) {
-	const url = queue.shift();
-	if (seen.has(url)) continue;
-	seen.add(url);
-
-	let response;
-	try {
-		response = await fetch(url);
-	} catch {
+	"presaadesione",
+	"adesione",
+]) {
+	let index = dashboard.indexOf(needle);
+	console.log(`\n=== ${needle} ===`);
+	if (index < 0) {
+		console.log("NOT FOUND");
 		continue;
 	}
-	if (!response.ok) continue;
-
-	const body = await response.text();
-
-	if (/\/dashboard-[^/]+\.js(?:\?|$)/.test(url)) {
-		console.log(
-			`\n### DASHBOARD SERVICE @ ${url}\n${body.slice(0, 18000).replace(/\\s+/g, " ")}`,
-		);
-	}
-
-	if (body.includes("presaVisioneBacheca")) {
-		console.log(`\n### BACHECA VIEW IMPORTS @ ${url}`);
-		for (const match of body.matchAll(/import[^;]+;/g))
-			console.log(match[0].slice(0, 2000));
-	}
-
-	if (body.includes("downloadallegatobacheca")) {
-		console.log(
-			`\n### BACHECA SERVICE CANDIDATE @ ${url}\n${body.slice(0, 12000).replace(/\\s+/g, " ")}`,
-		);
-	}
-
-	for (const needle of needles) {
-		let offset = 0;
-		let count = 0;
-
-		while (count < 6) {
-			const index = body.indexOf(needle, offset);
-			if (index < 0) break;
-
-			const start = Math.max(0, index - 900);
-			const end = Math.min(body.length, index + needle.length + 1500);
-			const snippet = body
-				.slice(start, end)
-				.replace(/\s+/g, " ")
-				.slice(0, 2500);
-
-			console.log(`\n### ${needle} @ ${url}\n${snippet}`);
-			matches += 1;
-			offset = index + needle.length;
-			count += 1;
-		}
-	}
-
-	for (const match of body.matchAll(/["']([^"'\\s]+\.js(?:\?[^"']*)?)["']/g)) {
-		try {
-			const child = new URL(match[1], url).href;
-			if (
-				child.startsWith(new URL(base).origin) &&
-				!seen.has(child) &&
-				!queue.includes(child)
-			)
-				queue.push(child);
-		} catch {
-			// Ignore non-URL strings.
-		}
-	}
+	console.log(
+		dashboard
+			.slice(Math.max(0, index - 1500), Math.min(dashboard.length, index + 3500))
+			.replace(/\s+/g, " "),
+	);
 }
-
-console.log(`scanned scripts: ${seen.size}`);
-console.log(`mutative matches: ${matches}`);
