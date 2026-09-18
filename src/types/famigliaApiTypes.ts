@@ -232,6 +232,24 @@ export type FamigliaAPITasse = {
 	message?: string | null;
 };
 
+export type FamigliaAPIRicevimenti = FamigliaAPIResponse<{
+	disponibilita: Record<string, Json>;
+	genitoreOAlunno: {
+		desEMail: string;
+		nominativo: string;
+		pk: string;
+		telefono: string;
+	}[];
+	listaDisponibilita: Json[];
+	tipoAccesso: string;
+	prenotazioni: Json[];
+}>;
+
+export type FamigliaAPICorsiRecupero = FamigliaAPIResponse<{
+	corsiRecupero: Json[];
+	periodi: Json[];
+}>;
+
 export type FamigliaAPICurriculum = FamigliaAPIResponse<{
 	curriculum: {
 		pkScheda: string;
