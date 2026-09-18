@@ -277,12 +277,14 @@ export abstract class BaseClient {
 			body: {},
 		});
 
-		const [apiSession] = login.data;
-
-		if (!login.success || !apiSession)
+		if (!login.success)
 			throw new Error(
 				login.message ?? login.msg ?? "Famiglia API login failed",
 			);
+
+		const [apiSession] = login.data;
+
+		if (!apiSession) throw new Error("Famiglia API login returned no session");
 
 		this.apiSession = apiSession;
 		return apiSession;
@@ -471,6 +473,9 @@ export abstract class BaseClient {
 		delete this.loginData;
 		delete this.profile;
 		delete this.dashboard;
+		delete this.apiSession;
+		delete this.famigliaProfile;
+		delete this.famigliaDashboard;
 	}
 
 	/**
