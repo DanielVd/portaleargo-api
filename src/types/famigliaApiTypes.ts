@@ -232,6 +232,12 @@ export type FamigliaAPITasse = {
 	message?: string | null;
 };
 
+export type FamigliaAPIVotiScrutinio = FamigliaAPIResponse<{
+	votiScrutinio: {
+		periodi?: Json[];
+	}[];
+}>;
+
 export type FamigliaAPIRicevimenti = FamigliaAPIResponse<{
 	disponibilita: Record<string, Json>;
 	genitoreOAlunno: {
