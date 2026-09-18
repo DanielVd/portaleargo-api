@@ -42,7 +42,7 @@ jobs:
         run: npm run build
 
   famiglia-readonly-e2e:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/feat/modern-api'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: static-checks
     runs-on: ubuntu-latest
 
