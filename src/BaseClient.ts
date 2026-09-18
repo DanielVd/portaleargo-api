@@ -1,7 +1,5 @@
 import type {
-	APIBachecaAlunno,
 	APIDashboard,
-	APIDownloadAllegato,
 	APIPresavisioneAdesione,
 	APILogin,
 	APIPCTO,
@@ -16,6 +14,7 @@ import type {
 	Json,
 	LoginLink,
 	FamigliaAPIBacheca,
+	FamigliaAPIBachecaAlunno,
 	FamigliaAPICurriculum,
 	FamigliaAPIDettagliProfilo,
 	FamigliaAPIDashboard,
@@ -589,17 +588,32 @@ export abstract class BaseClient {
 	 * @param pkScheda - L'id del profilo
 	 * @returns L'url
 	 */
-	async getLinkAllegatoStudente(
-		uid: string,
-		pkScheda = this.profile?.scheda.pk,
-	) {
-		this.checkReady();
-		const download = await this.apiRequest<APIDownloadAllegato>(
-			"downloadallegatobachecaalunno",
-			{ body: { uid, pkScheda } },
-		);
+	async getLinkAllegatoStudente(uid: string, pkScheda?: string) {
+		if (!this.apiSession) await this.bootstrapSession();
+		if (!pkScheda && !this.famigliaProfile) await this.getProfilo();
 
-		if (!download.success) throw new Error(download.msg);
+		const resolvedPkScheda =
+			pkScheda ?? this.famigliaProfile?.scheda.pk ?? this.profile?.scheda.pk;
+
+		if (!resolvedPkScheda)
+			throw new Error("Student profile id is unavailable");
+
+		const download =
+			await this.famigliaRequest<FamigliaAPIDownloadAllegato>(
+				"famiglia/downloadallegatobachecaalunno",
+				{
+					method: "POST",
+					body: { uid, pkScheda: resolvedPkScheda },
+				},
+			);
+
+		if (!download.success)
+			throw new Error(
+				download.message ??
+					download.msg ??
+					"Famiglia student attachment request failed",
+			);
+
 		return download.url;
 	}
 
@@ -840,16 +854,26 @@ export abstract class BaseClient {
 	 * @returns I dati
 	 */
 	async getStoricoBachecaAlunno(pkScheda: string) {
-		this.checkReady();
-		const bacheca = await this.apiRequest<APIBachecaAlunno>(
-			"storicobachecaalunno",
+		if (!this.apiSession) await this.bootstrapSession();
+
+		const bacheca = await this.famigliaRequest<FamigliaAPIBachecaAlunno>(
+			"famiglia/storicobachecaalunno",
 			{
+				method: "POST",
 				body: { pkScheda },
 			},
 		);
 
-		if (!bacheca.success) throw new Error(bacheca.msg!);
-		return handleOperation(bacheca.data.bachecaAlunno);
+		if (!bacheca.success)
+			throw new Error(
+				bacheca.message ??
+					bacheca.msg ??
+					"Famiglia student bulletin request failed",
+			);
+
+		return bacheca.data.bachecaAlunno
+			.filter(({ operazione }) => operazione !== "D")
+			.map(({ operazione, ...item }) => item);
 	}
 
 	/**
