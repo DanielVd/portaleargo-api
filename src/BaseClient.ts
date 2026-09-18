@@ -686,14 +686,21 @@ export abstract class BaseClient {
 	 * @param pkScheda - L'id del profilo
 	 * @returns I dati
 	 */
-	async getTasse(pkScheda = this.profile?.scheda.pk) {
+	async getTasse(pkScheda?: string) {
 		if (!this.apiSession) await this.bootstrapSession();
+		if (!pkScheda && !this.famigliaProfile) await this.getProfilo();
+
+		const resolvedPkScheda =
+			pkScheda ?? this.famigliaProfile?.scheda.pk ?? this.profile?.scheda.pk;
+
+		if (!resolvedPkScheda)
+			throw new Error("Student profile id is unavailable");
 
 		const taxes = await this.famigliaRequest<FamigliaAPITasse>(
 			"pagamenti/listatassealunni",
 			{
 				method: "POST",
-				body: { pkScheda },
+				body: { pkScheda: resolvedPkScheda },
 			},
 		);
 
