@@ -68,3 +68,6 @@ jobs:
           NOME_UTENTE: ${{ secrets.ARGO_USERNAME }}
           PASSWORD: ${{ secrets.ARGO_PASSWORD }}
         run: node scripts/e2e-readonly.mjs
+
+      - name: Discover mutative frontend contracts
+        run: node scripts/discover-mutative-contracts.mjs
