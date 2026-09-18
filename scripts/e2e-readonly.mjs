@@ -118,25 +118,19 @@ const schede = [
 let studentAttachmentCandidate;
 
 for (const [index, schedaPk] of schede.entries()) {
-	const studentBoard = await probe(
-		`storicobachecaalunno[${index}]`,
-		"famiglia/storicobachecaalunno",
-		{ pkScheda: schedaPk },
+	const studentBoardItems = await client.getStoricoBachecaAlunno(schedaPk);
+
+	console.log(
+		`✅ getStoricoBachecaAlunno[${index}]: array(${studentBoardItems.length})`,
 	);
 
-	const studentBoardItems = studentBoard.payload?.data?.bachecaAlunno;
-	if (Array.isArray(studentBoardItems) && studentBoardItems.length > 0) {
+	if (studentBoardItems.length > 0) {
 		console.log(
-			`🔎 storicobachecaalunno[${index}] first item: ${JSON.stringify(schema(studentBoardItems[0]))}`,
+			`🔎 getStoricoBachecaAlunno[${index}] first item: ${JSON.stringify(schema(studentBoardItems[0]))}`,
 		);
 
 		const firstItem = studentBoardItems[0];
-		if (
-			!studentAttachmentCandidate &&
-			firstItem &&
-			typeof firstItem === "object" &&
-			typeof firstItem.pk === "string"
-		)
+		if (!studentAttachmentCandidate && typeof firstItem.pk === "string")
 			studentAttachmentCandidate = {
 				uid: firstItem.pk,
 				pkScheda: schedaPk,
@@ -144,13 +138,20 @@ for (const [index, schedaPk] of schede.entries()) {
 	}
 }
 
-if (studentAttachmentCandidate)
-	await probe(
-		"downloadallegatobachecaalunno",
-		"famiglia/downloadallegatobachecaalunno",
-		studentAttachmentCandidate,
+if (studentAttachmentCandidate) {
+	const response = await client.downloadAllegatoStudente(
+		studentAttachmentCandidate.uid,
+		studentAttachmentCandidate.pkScheda,
 	);
-else console.log("ℹ️ downloadallegatobachecaalunno: SKIP_NO_ATTACHMENT");
+	const data = await response.arrayBuffer();
+
+	if (!data.byteLength)
+		throw new Error("Downloaded student attachment is empty");
+
+	console.log(
+		`✅ downloadAllegatoStudente: ${response.status} ${response.headers.get("content-type") ?? "unknown"} ${data.byteLength} bytes`,
+	);
+} else console.log("ℹ️ downloadAllegatoStudente: SKIP_NO_ATTACHMENT");
 
 await probe("pcto", "famiglia/pcto", { pkScheda });
 
