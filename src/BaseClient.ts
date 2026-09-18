@@ -7,7 +7,6 @@ import type {
 	APIPCTO,
 	APIProfilo,
 	APIResponse,
-	APIRicevutaTelematica,
 	APIToken,
 	APIWhat,
 	ClientOptions,
@@ -25,6 +24,7 @@ import type {
 	FamigliaAPIOrarioGiornaliero,
 	FamigliaAPIProfilo,
 	FamigliaAPIRicevimenti,
+	FamigliaAPIRicevutaTelematica,
 	FamigliaAPICorsiRecupero,
 	FamigliaAPITasse,
 	FamigliaAPIVotiScrutinio,
@@ -627,14 +627,25 @@ export abstract class BaseClient {
 	 * @returns La ricevuta
 	 */
 	async getRicevuta(iuv: string) {
-		this.checkReady();
-		const ricevuta = await this.apiRequest<APIRicevutaTelematica>(
-			"ricevutatelematica",
-			{ body: { iuv } },
+		if (!this.apiSession) await this.bootstrapSession();
+
+		const ricevuta = await this.famigliaRequest<FamigliaAPIRicevutaTelematica>(
+			"pagamenti/ricevutatelematica",
+			{
+				method: "POST",
+				body: { iuv },
+			},
 		);
 
-		if (!ricevuta.success) throw new Error(ricevuta.msg);
-		const { success, msg, ...rest } = ricevuta;
+		if (!ricevuta.success)
+			throw new Error(
+				ricevuta.message ??
+					ricevuta.msg ??
+					"Famiglia telematic receipt request failed",
+			);
+
+		const { success, ...rest } = ricevuta;
+		void success;
 
 		return rest;
 	}
