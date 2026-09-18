@@ -32,5 +32,8 @@ jobs:
       - name: TypeScript
         run: npx tsc --noEmit
 
+      - name: E2E runner syntax
+        run: node --check scripts/e2e-readonly.mjs
+
       - name: Build
         run: npm run build
