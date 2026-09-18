@@ -6,7 +6,7 @@ TypeScript client for Portale Argo, with first-class support for the official Fa
 
 ## Requirements
 
-- Node.js 18+
+- Node.js 20.18.1+
 - an Argo Famiglia account
 - school code, username, and password
 

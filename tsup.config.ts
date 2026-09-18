@@ -16,7 +16,7 @@ const options: Options[] = [
 	{
 		entry: ["src/index.ts"],
 		platform: "node",
-		target: "node18",
+		target: "node20",
 		...baseConfig,
 	},
 	{
