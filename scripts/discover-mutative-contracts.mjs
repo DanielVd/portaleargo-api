@@ -1,6 +1,13 @@
 const base = "https://www.portaleargo.it/famiglia/";
 
 const needles = [
+	"storicobacheca",
+	"bachecaAlunno",
+	"bachecaalunno",
+	"adesione",
+	"visione",
+	"presaVisione",
+	"presaAdesione",
 	"presavisioneadesione",
 	"presavisionebachecaalunno",
 	"presaadesione",
