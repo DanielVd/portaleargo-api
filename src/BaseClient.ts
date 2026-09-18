@@ -1,6 +1,5 @@
 import type {
 	APIDashboard,
-	APIPresavisioneAdesione,
 	APILogin,
 	APIPCTO,
 	APIProfilo,
@@ -20,6 +19,7 @@ import type {
 	FamigliaAPIDashboard,
 	FamigliaAPIDownloadAllegato,
 	FamigliaAPILogin,
+	FamigliaAPIMutationResponse,
 	FamigliaAPIOrarioGiornaliero,
 	FamigliaAPIProfilo,
 	FamigliaAPIRicevimenti,
@@ -879,31 +879,144 @@ export abstract class BaseClient {
 	/**
 	 * Conferma la presa visione di un avviso della bacheca.
 	 *
-	 * Argo richiede il download di almeno un allegato prima della conferma.
-	 * L'allegato viene quindi scaricato realmente tramite il relativo URL
-	 * firmato prima di chiamare `presavisioneadesione`.
-	 *
 	 * @param pkScheda - L'id del profilo
 	 * @param prgMessaggio - Il pk dell'avviso
-	 * @param allegatoUid - Il pk di un allegato dell'avviso
+	 * @param allegatoUid - Parametro legacy mantenuto per compatibilità; ignorato dalla API Famiglia
 	 * @returns Il risultato della conferma
 	 */
 	async confirmPresaVisioneBacheca(
 		pkScheda: string,
 		prgMessaggio: string,
-		allegatoUid: string,
+		allegatoUid?: string,
 	) {
-		this.checkReady();
+		void allegatoUid;
 
-		const attachment = await this.downloadAllegato(allegatoUid);
-		await attachment.arrayBuffer();
+		if (!this.apiSession) await this.bootstrapSession();
 
-		const result = await this.apiRequest<APIPresavisioneAdesione>(
-			"presavisioneadesione",
-			{ body: { pkScheda, prgMessaggio } },
+		const result = await this.famigliaRequest<FamigliaAPIMutationResponse>(
+			"famiglia/presavisione",
+			{
+				method: "POST",
+				body: { pkScheda, prgMessaggio },
+			},
 		);
 
-		if (!result.success) throw new Error(result.message ?? result.msg ?? "Presa visione fallita");
+		if (!result.success)
+			throw new Error(
+				result.message ?? result.msg ?? "Famiglia read confirmation failed",
+			);
+
+		return result;
+	}
+
+	/**
+	 * Conferma la presa visione di un documento della bacheca alunno.
+	 *
+	 * @param prgMessaggio - Il pk del documento
+	 * @returns Il risultato della conferma
+	 */
+	async confirmPresaVisioneBachecaAlunno(prgMessaggio: string) {
+		if (!this.apiSession) await this.bootstrapSession();
+
+		const result = await this.famigliaRequest<FamigliaAPIMutationResponse>(
+			"famiglia/presavisionebachecaalunno",
+			{
+				method: "POST",
+				body: { prgMessaggio },
+			},
+		);
+
+		if (!result.success)
+			throw new Error(
+				result.message ??
+					result.msg ??
+					"Famiglia student bulletin read confirmation failed",
+			);
+
+		return result;
+	}
+
+	/**
+	 * Conferma o annulla l'adesione a un avviso della bacheca.
+	 *
+	 * L'endpoint ufficiale è un toggle: una seconda chiamata rimuove
+	 * un'adesione già confermata.
+	 */
+	async togglePresaAdesioneBacheca(
+		pkScheda: string,
+		prgMessaggio: string,
+	) {
+		if (!this.apiSession) await this.bootstrapSession();
+
+		const result = await this.famigliaRequest<FamigliaAPIMutationResponse>(
+			"famiglia/presaadesione",
+			{
+				method: "POST",
+				body: { pkScheda, prgMessaggio },
+			},
+		);
+
+		if (!result.success)
+			throw new Error(
+				result.message ?? result.msg ?? "Famiglia bulletin adhesion failed",
+			);
+
+		return result;
+	}
+
+	/**
+	 * Conferma la presa visione di una nota disciplinare.
+	 */
+	async confirmPresaVisioneNota(pk: string) {
+		if (!this.apiSession) await this.bootstrapSession();
+
+		const result = await this.famigliaRequest<FamigliaAPIMutationResponse>(
+			"famiglia/presavisionenote",
+			{
+				method: "POST",
+				body: { pk },
+			},
+		);
+
+		if (!result.success)
+			throw new Error(
+				result.message ?? result.msg ?? "Famiglia note read confirmation failed",
+			);
+
+		return result;
+	}
+
+	/**
+	 * Giustifica uno o più eventi di appello.
+	 *
+	 * @param assenze - Identificativi degli eventi da giustificare
+	 * @param datGiorno - Giorno della giustificazione
+	 * @param descrizione - Motivazione
+	 */
+	async giustificaEventi(
+		assenze: string[],
+		datGiorno: string,
+		descrizione: string,
+	) {
+		if (!this.apiSession) await this.bootstrapSession();
+
+		const result = await this.famigliaRequest<FamigliaAPIMutationResponse>(
+			"famiglia/giustifica",
+			{
+				method: "POST",
+				body: {
+					assenze: assenze.join("###"),
+					datGiorno,
+					descrizione,
+				},
+			},
+		);
+
+		if (!result.success)
+			throw new Error(
+				result.message ?? result.msg ?? "Famiglia absence justification failed",
+			);
+
 		return result;
 	}
 
