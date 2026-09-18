@@ -15,6 +15,7 @@ const checks = [
 	["getDettagliProfilo", () => client.getDettagliProfilo()],
 	["getOrarioGiornaliero", () => client.getOrarioGiornaliero()],
 	["getRicevimenti", () => client.getRicevimenti()],
+	["getVotiScrutinio", () => client.getVotiScrutinio()],
 	["getTasse", () => client.getTasse(pkScheda)],
 	["getCorsiRecupero", () => client.getCorsiRecupero(pkScheda)],
 	["getCurriculum", () => client.getCurriculum(pkScheda)],
