@@ -16,7 +16,7 @@ const main = await getText(mainUrl);
 const bachecaPath = main.match(/["']([^"']*BachecaView-[^"']+\.js)["']/)?.[1];
 if (!bachecaPath) throw new Error("BachecaView bundle not found");
 
-const bachecaUrl = new URL(bachecaPath, mainUrl).href;
+const bachecaUrl = new URL(bachecaPath, base).href;
 const bacheca = await getText(bachecaUrl);
 
 const dashboardPath =
