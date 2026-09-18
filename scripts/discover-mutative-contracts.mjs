@@ -47,6 +47,12 @@ while (queue.length > 0 && seen.size < 300) {
 
 	const body = await response.text();
 
+	if (body.includes("presaVisioneBacheca")) {
+		console.log(`\n### BACHECA VIEW IMPORTS @ ${url}`);
+		for (const match of body.matchAll(/import[^;]+;/g))
+			console.log(match[0].slice(0, 2000));
+	}
+
 	if (body.includes("downloadallegatobacheca")) {
 		console.log(
 			`\n### BACHECA SERVICE CANDIDATE @ ${url}\n${body.slice(0, 12000).replace(/\\s+/g, " ")}`,
