@@ -115,6 +115,8 @@ const schede = [
 		: []),
 ].filter((value, index, values) => values.indexOf(value) === index);
 
+let studentAttachmentCandidate;
+
 for (const [index, schedaPk] of schede.entries()) {
 	const studentBoard = await probe(
 		`storicobachecaalunno[${index}]`,
@@ -123,11 +125,32 @@ for (const [index, schedaPk] of schede.entries()) {
 	);
 
 	const studentBoardItems = studentBoard.payload?.data?.bachecaAlunno;
-	if (Array.isArray(studentBoardItems) && studentBoardItems.length > 0)
+	if (Array.isArray(studentBoardItems) && studentBoardItems.length > 0) {
 		console.log(
 			`🔎 storicobachecaalunno[${index}] first item: ${JSON.stringify(schema(studentBoardItems[0]))}`,
 		);
+
+		const firstItem = studentBoardItems[0];
+		if (
+			!studentAttachmentCandidate &&
+			firstItem &&
+			typeof firstItem === "object" &&
+			typeof firstItem.pk === "string"
+		)
+			studentAttachmentCandidate = {
+				uid: firstItem.pk,
+				pkScheda: schedaPk,
+			};
+	}
 }
+
+if (studentAttachmentCandidate)
+	await probe(
+		"downloadallegatobachecaalunno",
+		"famiglia/downloadallegatobachecaalunno",
+		studentAttachmentCandidate,
+	);
+else console.log("ℹ️ downloadallegatobachecaalunno: SKIP_NO_ATTACHMENT");
 
 await probe("pcto", "famiglia/pcto", { pkScheda });
 
