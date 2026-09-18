@@ -1,6 +1,5 @@
 import type {
 	APIBachecaAlunno,
-	APICorsiRecupero,
 	APIDashboard,
 	APIDownloadAllegato,
 	APIPresavisioneAdesione,
@@ -8,7 +7,6 @@ import type {
 	APIPCTO,
 	APIProfilo,
 	APIResponse,
-	APIRicevimenti,
 	APIRicevutaTelematica,
 	APIToken,
 	APIVotiScrutinio,
@@ -27,6 +25,8 @@ import type {
 	FamigliaAPILogin,
 	FamigliaAPIOrarioGiornaliero,
 	FamigliaAPIProfilo,
+	FamigliaAPIRicevimenti,
+	FamigliaAPICorsiRecupero,
 	FamigliaAPITasse,
 	ReadyClient,
 	Token,
@@ -651,13 +651,24 @@ export abstract class BaseClient {
 	 * Ottieni i dati riguardo i ricevimenti dello studente.
 	 * @returns I dati
 	 */
-	async getRicevimenti<T extends APIRicevimenti["data"]>(old?: T) {
-		this.checkReady();
-		const ricevimenti = await this.apiRequest<APIRicevimenti>("ricevimento", {
-			body: {},
-		});
+	async getRicevimenti<T extends FamigliaAPIRicevimenti["data"]>(old?: T) {
+		if (!this.apiSession) await this.bootstrapSession();
 
-		if (!ricevimenti.success) throw new Error(ricevimenti.msg!);
+		const ricevimenti = await this.famigliaRequest<FamigliaAPIRicevimenti>(
+			"ricevimento/load",
+			{
+				method: "POST",
+				body: {},
+			},
+		);
+
+		if (!ricevimenti.success)
+			throw new Error(
+				ricevimenti.message ??
+					ricevimenti.msg ??
+					"Famiglia meetings request failed",
+			);
+
 		return Object.assign(old ?? {}, ricevimenti.data);
 	}
 
@@ -713,16 +724,29 @@ export abstract class BaseClient {
 	 * @param pkScheda - L'id del profilo
 	 * @returns I dati
 	 */
-	async getCorsiRecupero<T extends APICorsiRecupero["data"]>(
+	async getCorsiRecupero<T extends FamigliaAPICorsiRecupero["data"]>(
 		pkScheda = this.profile?.scheda.pk,
 		old?: T,
 	) {
-		this.checkReady();
-		const courses = await this.apiRequest<APICorsiRecupero>("corsirecupero", {
-			body: { pkScheda },
-		});
+		void pkScheda;
 
-		if (!courses.success) throw new Error(courses.msg!);
+		if (!this.apiSession) await this.bootstrapSession();
+
+		const courses = await this.famigliaRequest<FamigliaAPICorsiRecupero>(
+			"famiglia/corsirecupero",
+			{
+				method: "POST",
+				body: {},
+			},
+		);
+
+		if (!courses.success)
+			throw new Error(
+				courses.message ??
+					courses.msg ??
+					"Famiglia recovery courses request failed",
+			);
+
 		return Object.assign(old ?? {}, courses.data);
 	}
 
