@@ -47,6 +47,12 @@ while (queue.length > 0 && seen.size < 300) {
 
 	const body = await response.text();
 
+	if (/\/dashboard-[^/]+\.js(?:\?|$)/.test(url)) {
+		console.log(
+			`\n### DASHBOARD SERVICE @ ${url}\n${body.slice(0, 18000).replace(/\\s+/g, " ")}`,
+		);
+	}
+
 	if (body.includes("presaVisioneBacheca")) {
 		console.log(`\n### BACHECA VIEW IMPORTS @ ${url}`);
 		for (const match of body.matchAll(/import[^;]+;/g))
