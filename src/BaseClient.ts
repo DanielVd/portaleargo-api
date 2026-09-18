@@ -1,20 +1,15 @@
 import type {
-	APIBacheca,
 	APIBachecaAlunno,
 	APICorsiRecupero,
-	APICurriculum,
 	APIDashboard,
-	APIDettagliProfilo,
 	APIDownloadAllegato,
 	APIPresavisioneAdesione,
 	APILogin,
-	APIOrarioGiornaliero,
 	APIPCTO,
 	APIProfilo,
 	APIResponse,
 	APIRicevimenti,
 	APIRicevutaTelematica,
-	APITasse,
 	APIToken,
 	APIVotiScrutinio,
 	APIWhat,
@@ -24,6 +19,15 @@ import type {
 	HttpMethod,
 	Json,
 	LoginLink,
+	FamigliaAPIBacheca,
+	FamigliaAPICurriculum,
+	FamigliaAPIDettagliProfilo,
+	FamigliaAPIDashboard,
+	FamigliaAPIDownloadAllegato,
+	FamigliaAPILogin,
+	FamigliaAPIOrarioGiornaliero,
+	FamigliaAPIProfilo,
+	FamigliaAPITasse,
 	ReadyClient,
 	Token,
 } from "./types";
@@ -41,6 +45,8 @@ import {
  */
 export abstract class BaseClient {
 	static readonly BASE_URL = "https://www.portaleargo.it";
+	static readonly FAMIGLIA_BASE_URL = "https://didattica.portaleargo.it/famiglia/api";
+	static readonly FAMIGLIA_VERSION = "4.1.0";
 
 	/**
 	 * A custom fetch implementation
@@ -56,6 +62,25 @@ export abstract class BaseClient {
 	 * I dati del login
 	 */
 	loginData?: APILogin["data"][number];
+
+	/**
+	 * Dati della sessione applicativa della nuova API Famiglia WEB.
+	 *
+	 * Restano separati da loginData finché la migrazione non è completa.
+	 */
+	apiSession?: FamigliaAPILogin["data"][number];
+
+	/**
+	 * Profilo restituito dalla nuova API Famiglia WEB.
+	 */
+	famigliaProfile?: FamigliaAPIProfilo["data"];
+
+	/**
+	 * Dashboard restituita dalla nuova API Famiglia WEB.
+	 *
+	 * Resta separata da dashboard finché la migrazione non è completa.
+	 */
+	famigliaDashboard?: FamigliaAPIDashboard["data"]["dati"][number];
 
 	/**
 	 * I dati del profilo
@@ -181,6 +206,146 @@ export abstract class BaseClient {
 	}
 
 	/**
+	 * Effettua una richiesta alla nuova API Famiglia WEB.
+	 */
+	famigliaRequest<T extends Json>(
+		path: string,
+		options?: Partial<{
+			body: Json;
+			method: HttpMethod;
+			noWait: false;
+		}>,
+	): Promise<T>;
+	famigliaRequest<T extends Json>(
+		path: string,
+		options: {
+			body?: Json;
+			method?: HttpMethod;
+			noWait: true;
+		},
+	): Promise<Omit<Response, "json"> & { json: () => Promise<T> }>;
+	async famigliaRequest(
+		path: string,
+		options: Partial<{
+			body: Json;
+			method: HttpMethod;
+			noWait: boolean;
+		}> = {},
+	): Promise<unknown> {
+		const headers: Record<string, string> = {
+			accept: "application/json",
+			"argo-client-version": BaseClient.FAMIGLIA_VERSION,
+			"os-type": "WEB",
+			authorization: `Bearer ${this.token?.access_token ?? ""}`,
+		};
+
+		options.method ??= options.body ? "POST" : "GET";
+
+		if (options.body != null)
+			headers["content-type"] = "application/json";
+
+		if (this.apiSession) {
+			headers["x-auth-token"] = this.apiSession.token;
+			headers["x-cod-min"] = this.apiSession.codMin;
+		}
+
+		if (this.headers) Object.assign(headers, this.headers);
+
+		const res = await this.fetch(
+			`${BaseClient.FAMIGLIA_BASE_URL}/${path}`,
+			{
+				headers,
+				method: options.method,
+				body: options.body != null ? JSON.stringify(options.body) : undefined,
+			},
+		);
+
+		if (this.debug)
+			console.debug(
+				`${options.method} ${BaseClient.FAMIGLIA_BASE_URL}/${path} ${res.status}`,
+			);
+
+		return options.noWait ? res : (res.json() as unknown);
+	}
+
+	/**
+	 * Inizializza la sessione applicativa della nuova API Famiglia WEB
+	 * utilizzando il Bearer OAuth già ottenuto dal client.
+	 */
+	async bootstrapSession() {
+		const login = await this.famigliaRequest<FamigliaAPILogin>("login", {
+			body: {},
+		});
+
+		const [apiSession] = login.data;
+
+		if (!login.success || !apiSession)
+			throw new Error(
+				login.message ?? login.msg ?? "Famiglia API login failed",
+			);
+
+		this.apiSession = apiSession;
+		return apiSession;
+	}
+
+	/**
+	 * Recupera il profilo dalla nuova API Famiglia WEB.
+	 */
+	async getProfilo() {
+		if (!this.apiSession) await this.bootstrapSession();
+
+		const profile = await this.famigliaRequest<FamigliaAPIProfilo>("profilo");
+
+		if (!profile.success)
+			throw new Error(
+				profile.message ?? profile.msg ?? "Famiglia profile request failed",
+			);
+
+		this.famigliaProfile = profile.data;
+		return this.famigliaProfile;
+	}
+
+	/**
+	 * Recupera la dashboard dalla nuova API Famiglia WEB.
+	 */
+	async getDashboard() {
+		if (!this.apiSession) await this.bootstrapSession();
+		if (!this.famigliaProfile) await this.getProfilo();
+
+		const dashboard = await this.famigliaRequest<FamigliaAPIDashboard>(
+			"dashboard/dashboard",
+			{
+				body: {
+					dataultimoaggiornamento: formatDate(
+						this.famigliaProfile!.anno.dataInizio,
+					),
+					opzioni: JSON.stringify(
+						Object.fromEntries(
+							this.apiSession!.opzioni.map(({ chiave, valore }) => [
+								chiave,
+								valore,
+							]),
+						),
+					),
+				},
+			},
+		);
+
+		if (!dashboard.success)
+			throw new Error(
+				dashboard.message ?? dashboard.msg ?? "Famiglia dashboard request failed",
+			);
+
+		const [data] = dashboard.data.dati;
+
+		if (!data)
+			throw new Error("Famiglia dashboard returned no data");
+
+		this.famigliaDashboard = data;
+		return data;
+	}
+
+	/**
 	 * Effettua il login.
 	 * @returns Il client aggiornato
 	 */
@@ -212,14 +377,14 @@ export abstract class BaseClient {
 				}
 				this.#ready = true;
 				if (whatData.mostraPallino || !this.dashboard)
-					await this.getDashboard();
+					await this.getLegacyDashboard();
 				this.aggiornaData().catch(console.error);
 				return this as ReadyClient & this & { dashboard: Dashboard };
 			}
 		}
-		if (!this.profile) await this.getProfilo();
+		if (!this.profile) await this.getLegacyProfilo();
 		this.#ready = true;
-		await this.getDashboard();
+		await this.getLegacyDashboard();
 		return this as ReadyClient & this & { dashboard: Dashboard };
 	}
 
@@ -312,13 +477,24 @@ export abstract class BaseClient {
 	 * Ottieni i dettagli del profilo dello studente.
 	 * @returns I dati
 	 */
-	async getDettagliProfilo<T extends APIDettagliProfilo["data"]>(old?: T) {
-		this.checkReady();
-		const body = await this.apiRequest<APIDettagliProfilo>("dettaglioprofilo", {
-			method: "POST",
-		});
+	async getDettagliProfilo<T extends FamigliaAPIDettagliProfilo["data"]>(
+		old?: T,
+	) {
+		if (!this.apiSession) await this.bootstrapSession();
 
-		if (!body.success) throw new Error(body.msg!);
+		const body = await this.famigliaRequest<FamigliaAPIDettagliProfilo>(
+			"dettaglioprofilo",
+			{
+				method: "POST",
+				body: {},
+			},
+		);
+
+		if (!body.success)
+			throw new Error(
+				body.message ?? body.msg ?? "Famiglia profile details request failed",
+			);
+
 		return Object.assign(old ?? {}, body.data);
 	}
 
@@ -327,27 +503,39 @@ export abstract class BaseClient {
 	 * @param date - Il giorno dell'orario
 	 * @returns I dati
 	 */
+	/**
+	 * Ottieni l'orario giornaliero dalla nuova API Famiglia WEB.
+	 * @param date - Il giorno dell'orario
+	 * @returns Le lezioni della giornata
+	 */
 	async getOrarioGiornaliero(date?: {
 		year?: number;
 		month?: number;
 		day?: number;
 	}) {
-		this.checkReady();
-		const now = new Date();
-		const orario = await this.apiRequest<APIOrarioGiornaliero>(
-			"orario-giorno",
-			{
-				body: {
-					datGiorno: formatDate(
-						`${date?.year ?? now.getFullYear()}-${
-							date?.month ?? now.getMonth() + 1
-						}-${date?.day ?? now.getDate() + 1}`,
-					),
-				},
-			},
-		);
+		if (!this.apiSession) await this.bootstrapSession();
 
-		if (!orario.success) throw new Error(orario.msg!);
+		const now = new Date();
+
+		const orario =
+			await this.famigliaRequest<FamigliaAPIOrarioGiornaliero>(
+				"famiglia/orario-giorno",
+				{
+					body: {
+						datGiorno: formatDate(
+							`${date?.year ?? now.getFullYear()}-${
+								date?.month ?? now.getMonth() + 1
+							}-${date?.day ?? now.getDate()}`,
+						),
+					},
+				},
+			);
+
+		if (!orario.success)
+			throw new Error(
+				orario.message ?? orario.msg ?? "Famiglia timetable request failed",
+			);
+
 		return Object.values(orario.data.dati).flat();
 	}
 
@@ -357,13 +545,21 @@ export abstract class BaseClient {
 	 * @returns L'url
 	 */
 	async getLinkAllegato(uid: string) {
-		this.checkReady();
-		const download = await this.apiRequest<APIDownloadAllegato>(
-			"downloadallegatobacheca",
-			{ body: { uid } },
-		);
+		if (!this.apiSession) await this.bootstrapSession();
 
-		if (!download.success) throw new Error(download.msg);
+		const download =
+			await this.famigliaRequest<FamigliaAPIDownloadAllegato>(
+				"famiglia/downloadallegatobacheca",
+				{
+					body: { uid },
+				},
+			);
+
+		if (!download.success)
+			throw new Error(
+				download.message ?? download.msg ?? "Famiglia attachment request failed",
+			);
+
 		return download.url;
 	}
 
@@ -471,13 +667,25 @@ export abstract class BaseClient {
 	 * @returns I dati
 	 */
 	async getTasse(pkScheda = this.profile?.scheda.pk) {
-		this.checkReady();
-		const taxes = await this.apiRequest<APITasse>("listatassealunni", {
-			body: { pkScheda },
-		});
+		if (!this.apiSession) await this.bootstrapSession();
 
-		if (!taxes.success) throw new Error(taxes.msg!);
-		const { success, msg, data, ...rest } = taxes;
+		const taxes = await this.famigliaRequest<FamigliaAPITasse>(
+			"pagamenti/listatassealunni",
+			{
+				method: "POST",
+				body: { pkScheda },
+			},
+		);
+
+		if (!taxes.success)
+			throw new Error(
+				taxes.message ?? taxes.msg ?? "Famiglia taxes request failed",
+			);
+
+		const { success, msg, message, data, ...rest } = taxes;
+		void success;
+		void msg;
+		void message;
 
 		return {
 			...rest,
@@ -524,15 +732,24 @@ export abstract class BaseClient {
 	 * @returns I dati
 	 */
 	async getCurriculum(pkScheda = this.profile?.scheda.pk) {
-		this.checkReady();
-		const curriculum = await this.apiRequest<APICurriculum>(
-			"curriculumalunno",
+		void pkScheda;
+
+		if (!this.apiSession) await this.bootstrapSession();
+
+		const curriculum = await this.famigliaRequest<FamigliaAPICurriculum>(
+			"famiglia/curriculum-alunno",
 			{
-				body: { pkScheda },
+				method: "GET",
 			},
 		);
 
-		if (!curriculum.success) throw new Error(curriculum.msg!);
+		if (!curriculum.success)
+			throw new Error(
+				curriculum.message ??
+					curriculum.msg ??
+					"Famiglia curriculum request failed",
+			);
+
 		return curriculum.data.curriculum;
 	}
 
@@ -542,13 +759,21 @@ export abstract class BaseClient {
 	 * @returns I dati
 	 */
 	async getStoricoBacheca(pkScheda: string) {
-		this.checkReady();
-		const bacheca = await this.apiRequest<APIBacheca>("storicobacheca", {
-			body: { pkScheda },
-		});
+		if (!this.apiSession) await this.bootstrapSession();
 
-		if (!bacheca.success) throw new Error(bacheca.msg!);
-		return handleOperation(bacheca.data.bacheca);
+		const bacheca = await this.famigliaRequest<FamigliaAPIBacheca>(
+			"famiglia/storicobacheca",
+			{
+				body: { pkScheda },
+			},
+		);
+
+		if (!bacheca.success)
+			throw new Error(
+				bacheca.message ?? bacheca.msg ?? "Famiglia bulletin request failed",
+			);
+
+		return bacheca.data.bacheca.map(({ operazione, ...item }) => item);
 	}
 
 	/**
@@ -604,7 +829,7 @@ export abstract class BaseClient {
 	 * Ottieni i dati della dashboard.
 	 * @returns La dashboard
 	 */
-	private async getDashboard() {
+	private async getLegacyDashboard() {
 		this.checkReady();
 		const date = new Date();
 		const res = await this.apiRequest<APIDashboard>("dashboard/dashboard", {
@@ -688,7 +913,7 @@ export abstract class BaseClient {
 		return response;
 	}
 
-	private async getProfilo() {
+	private async getLegacyProfilo() {
 		const profile = await this.apiRequest<APIProfilo>("profilo");
 
 		if (!profile.success) throw new Error(profile.msg!);
