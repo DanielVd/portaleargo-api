@@ -4,6 +4,10 @@
 
 TypeScript client for Portale Argo, with first-class support for the official Famiglia API.
 
+**Current GitHub release:** [v1.1.0](https://github.com/DanielVd/portaleargo-api/releases/tag/v1.1.0) (2026-09-19). See [CHANGELOG.md](CHANGELOG.md) for the release history and [portaleargo-mcp v0.2.0](https://github.com/DanielVd/portaleargo-mcp/releases/tag/v0.2.0) for the MCP server built on this client.
+
+This repository's GitHub release is **not an npm publication**. Use the tagged source checkout below to install this version.
+
 ## Requirements
 
 - Node.js 20.18.1+
@@ -12,15 +16,25 @@ TypeScript client for Portale Argo, with first-class support for the official Fa
 
 ## Installation
 
+Clone the tagged GitHub release and build it with Node.js 20.18.1+:
+
 ```bash
-npm install
+git clone --branch v1.1.0 --depth 1 https://github.com/DanielVd/portaleargo-api.git
+cd portaleargo-api
+npm ci --legacy-peer-deps --ignore-scripts
 npm run build
 ```
 
+Use `./dist/index.js` from this checkout when running the code locally. The `portaleargo-api` import shown below is for a consuming project that has installed this library as a dependency; it is not a claim that this GitHub release is available on npm.
+
+Keep credentials in environment variables. Do not commit a `.env` file or include credentials in diagnostic output.
+
 ## Quick start
 
+For the tagged source checkout above:
+
 ```ts
-import { Client } from "portaleargo-api";
+import { Client } from "./dist/index.js";
 
 const client = new Client({
   schoolCode: process.env.ARGO_SCHOOL_CODE!,
@@ -75,9 +89,11 @@ await client.confirmPresaVisioneNota(pkNota);
 await client.giustificaEventi(eventIds, "2026-09-18", "Motivazione");
 ```
 
-These calls modify data in Argo and should only be executed deliberately.
+These calls modify real school data in Argo and should only be executed deliberately. Generic bulletin and student-document read confirmation were validated against the real Famiglia backend. Bulletin adhesion, disciplinary-note read confirmation and attendance justification are implemented using the observed Famiglia request contracts but **have not been validated end-to-end on applicable real records**. Do not treat their presence in the client as proof of a successful production mutation.
 
-`confirmPresaVisioneBacheca()` downloads an attachment before confirming read status because the Famiglia backend can require at least one attachment download. Callers may provide `allegatoUid`; when it is omitted, the client resolves and downloads the first attachment of the notice automatically.
+`togglePresaAdesioneBacheca()` is a toggle: invoking it again can undo a previously confirmed adhesion.
+
+`confirmPresaVisioneBacheca()` downloads an attachment before confirming read status because the Famiglia backend requires an attachment download for the validated notice type. Callers may provide `allegatoUid`; when omitted, the client finds the notice and downloads its first attachment. If no attachment exists, the method fails explicitly instead of sending an unsupported confirmation request.
 
 ## PCTO
 
@@ -113,16 +129,9 @@ Student-specific documents use `getLinkAllegatoStudente()` / `downloadAllegatoSt
 
 ## Validation
 
-The repository CI runs:
+On pull requests to `main`, the `CI / static-checks` job performs installation, a production dependency audit (`npm audit --omit=dev --audit-level=high`), ESLint, TypeScript checking, E2E script syntax checking, and a build. This job is required by the `main` branch ruleset. CodeQL also runs on pull requests and on pushes to `main`.
 
-```bash
-npx eslint src --max-warnings=0
-npx tsc --noEmit
-node --check scripts/e2e-readonly.mjs
-npm run build
-```
-
-A separate read-only E2E workflow validates the migrated methods against Argo using repository secrets:
+After a successful push to `main`, the `famiglia-readonly-e2e` job runs the read-only Famiglia integration script with the repository secrets:
 
 ```text
 ARGO_SCHOOL_CODE
@@ -130,7 +139,9 @@ ARGO_USERNAME
 ARGO_PASSWORD
 ```
 
-The automated E2E does not execute state-changing operations.
+The automated read-only E2E does not execute state-changing operations. Generic and student-document read confirmation were additionally checked against the real backend before v1.1.0, but no automatic API CI job runs live mutations. See the [v1.1.0 release notes](https://github.com/DanielVd/portaleargo-api/releases/tag/v1.1.0) for the exact release scope.
+
+The current branch README may contain documentation updates made after the release. The `v1.1.0` tag and its release source remain unchanged.
 
 ## Development
 
