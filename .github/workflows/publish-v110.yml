@@ -1,0 +1,75 @@
+name: Publish portaleargo-api v1.1.0 (one-time)
+
+on:
+  push:
+    branches:
+      - release/publish-v1.1.0
+    paths:
+      - .github/workflows/publish-v110.yml
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout verified release commit from main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Verify commit and package version
+        run: |
+          test "$(git rev-parse HEAD)" = "f8d1fee7d5109236c831e04c4dd9a61ed5da3a75"
+          test "$(node -p 'require("./package.json").version')" = "1.1.0"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.20.2"
+          cache: npm
+
+      - name: Install, audit and build
+        run: |
+          npm ci --legacy-peer-deps --ignore-scripts
+          npm audit --omit=dev --audit-level=high
+          npx eslint src --max-warnings=0
+          npx tsc --noEmit
+          npm run build
+
+      - name: Publish GitHub release for pinned main commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if gh release view v1.1.0 >/dev/null 2>&1; then
+            echo "v1.1.0 already exists: refusing duplicate publication"
+            exit 1
+          fi
+          cat > "$RUNNER_TEMP/release-notes.md" <<'NOTES'
+          ## Official Famiglia API migration
+
+          - Adds first-class support for the official Famiglia API for profile, dashboard, daily schedule, bulletin board, student documents, attachments, curriculum, school payments/receipts, teacher meetings, recovery courses, and scrutiny data.
+          - Adds Famiglia API mutations for generic and student notice read confirmation, notice adhesion, disciplinary-note acknowledgment, and attendance justification.
+          - Fixes generic notice read confirmation to actually download a notice attachment before sending the confirmation, as required by the real backend.
+          - Adds read-only end-to-end checks against the real Famiglia service, production dependency auditing, and updates synchronized with upstream.
+
+          ## Compatibility
+
+          - Requires Node.js **20.18.1 or newer**.
+          - Famiglia application methods use the new session; legacy authentication lifecycle methods remain for compatibility.
+          - PCTO continues using the legacy compatibility endpoint because the Famiglia endpoint returned HTTP 403 for the validation account.
+          - Adhesion, disciplinary-note acknowledgment and attendance justification are implemented but not yet validated end-to-end using real applicable records.
+
+          ## Validation
+
+          - Main-branch static checks, real read-only Famiglia E2E, and CodeQL succeeded on this release commit.
+          - Generic and student bulletin read confirmation were also validated against the real Famiglia API.
+
+          See [CHANGELOG.md](https://github.com/DanielVd/portaleargo-api/blob/v1.1.0/CHANGELOG.md) for details.
+          NOTES
+          gh release create v1.1.0 --target "f8d1fee7d5109236c831e04c4dd9a61ed5da3a75" --title "v1.1.0 - Famiglia API migration" --notes-file "$RUNNER_TEMP/release-notes.md"
+          test "$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/v1.1.0" --jq .object.sha)" = "f8d1fee7d5109236c831e04c4dd9a61ed5da3a75"
