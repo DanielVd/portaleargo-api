@@ -1,6 +1,6 @@
 {
 	"name": "portaleargo-api",
-	"version": "1.0.0",
+	"version": "1.1.0",
 	"description": "A library to interact with the api of ArgoScuolaNext",
 	"exports": {
 		"./web": "./dist/web.js",
@@ -33,7 +33,7 @@
 	"dependencies": {
 		"http-cookie-agent": "^6.0.8",
 		"tough-cookie": "^5.1.2",
-		"undici": "^7.5.0"
+		"undici": "^7.29.1"
 	},
 	"devDependencies": {
 		"@tsconfig/recommended": "^1.0.8",
@@ -49,7 +49,10 @@
 		"tsup": "^8.4.0",
 		"typescript": "^5.8.2"
 	},
+	"overrides": {
+		"fast-uri": "3.1.8"
+	},
 	"optionalDependencies": {
-		"ajv": "^8.17.1"
+		"ajv": "^8.20.0"
 	}
 }

@@ -14,16 +14,17 @@ import { generateLoginLink } from "./generateLoginLink";
  */
 export const getCode = async (credentials: Credentials) => {
 	const link = await generateLoginLink();
-	const dispatcher = new CookieAgent({
+	const baseDispatcher = new CookieAgent({
 		allowH2: true,
 		autoSelectFamily: true,
 		autoSelectFamilyAttemptTimeout: 1,
 		cookies: { jar: new CookieJar() },
-	}).compose(
-		interceptors.retry(),
+	});
+	const noRedirectDispatcher = baseDispatcher.compose(interceptors.retry());
+	const dispatcher = noRedirectDispatcher.compose(
 		interceptors.redirect({ maxRedirections: 3 }),
 	);
-	const url = (await request(link.url, { dispatcher, maxRedirections: 0 }))
+	const url = (await request(link.url, { dispatcher: noRedirectDispatcher }))
 		.headers.location;
 
 	ok(typeof url === "string", "Invalid login url");
