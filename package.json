@@ -49,6 +49,9 @@
 		"tsup": "^8.4.0",
 		"typescript": "^5.8.2"
 	},
+	"overrides": {
+		"fast-uri": "3.1.8"
+	},
 	"optionalDependencies": {
 		"ajv": "^8.20.0"
 	}
