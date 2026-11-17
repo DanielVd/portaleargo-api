@@ -33,7 +33,7 @@
 	"dependencies": {
 		"http-cookie-agent": "^6.0.8",
 		"tough-cookie": "^5.1.2",
-		"undici": "^7.29.1"
+		"undici": "^7.30.2"
 	},
 	"devDependencies": {
 		"@tsconfig/recommended": "^1.0.8",
@@ -50,7 +50,7 @@
 		"typescript": "^5.8.2"
 	},
 	"overrides": {
-		"fast-uri": "3.1.8"
+		"fast-uri": "3.1.9"
 	},
 	"optionalDependencies": {
 		"ajv": "^8.20.0"

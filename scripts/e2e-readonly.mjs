@@ -5,7 +5,7 @@ const client = new Client({
 	debug: false,
 });
 
-await client.bootstrapSession();
+await client.loginFamiglia();
 
 const schemaForDashboard = (value) => {
 	if (value === null || value === undefined) return String(value);

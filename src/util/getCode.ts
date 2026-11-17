@@ -6,6 +6,7 @@ import { interceptors, request } from "undici";
 import type { Credentials } from "../types";
 import { clientId } from "./Constants";
 import { generateLoginLink } from "./generateLoginLink";
+import { getArgoConsentUrl, getArgoAuthorizationCode } from "./loginRedirect";
 
 /**
  * Ottieni il codice per il login.
@@ -31,7 +32,7 @@ export const getCode = async (credentials: Credentials) => {
 	const challenge = new URL(url).searchParams.get("login_challenge");
 
 	ok(challenge, "Invalid login challenge");
-	const { location } = await request(
+	const loginResponse = await request(
 		"https://www.portaleargo.it/auth/sso/login",
 		{
 			dispatcher,
@@ -46,11 +47,16 @@ export const getCode = async (credentials: Credentials) => {
 			headers: { "content-type": "application/x-www-form-urlencoded" },
 			method: "POST",
 		},
-	).then((r) => r.headers);
+	);
+	let { location } = loginResponse.headers;
+	if (!location && loginResponse.statusCode === 200) {
+		const consentUrl = getArgoConsentUrl(await loginResponse.body.text(), link);
+		const consentResponse = await request(consentUrl, {
+			dispatcher: noRedirectDispatcher,
+		});
+		({ location } = consentResponse.headers);
+	}
+	const code = getArgoAuthorizationCode(typeof location === "string" ? location : undefined, link);
 
-	ok(typeof location === "string", "Invalid login redirect");
-	const code = new URL(location).searchParams.get("code");
-
-	ok(code, "Invalid login code");
 	return { ...link, code };
 };
