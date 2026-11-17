@@ -351,6 +351,30 @@ export abstract class BaseClient {
 	}
 
 	/**
+	 * Authenticate and load Famiglia data without invoking legacy
+	 * /appfamiglia/api/rest login, profile or dashboard endpoints.
+	 *
+	 * The historical login() method remains available for compatibility.
+	 */
+	async loginFamiglia() {
+		await this.loadData();
+		const expiresAt = this.token?.expireDate instanceof Date
+			? this.token.expireDate.getTime()
+			: 0;
+		if (!this.token || expiresAt <= Date.now() + 60_000) {
+			// Fetch a new OAuth token instead of using the legacy refresh endpoint.
+			await this.getToken();
+			this.apiSession = undefined;
+			this.famigliaProfile = undefined;
+			this.famigliaDashboard = undefined;
+		}
+		if (!this.apiSession) await this.bootstrapSession();
+		const profile = await this.getProfilo();
+		const dashboard = await this.getDashboard();
+		return { profile, dashboard };
+	}
+
+	/**
 	 * Effettua il login.
 	 * @returns Il client aggiornato
 	 */

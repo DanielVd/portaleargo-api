@@ -43,14 +43,12 @@ const client = new Client({
   dataProvider: null,
 });
 
-await client.bootstrapSession();
-
-const profile = await client.getProfilo();
+const { profile, dashboard } = await client.loginFamiglia();
 const schedule = await client.getOrarioGiornaliero();
 const notices = await client.getStoricoBacheca(profile.scheda.pk);
 ```
 
-`bootstrapSession()` obtains or refreshes the OAuth token when needed and opens the Famiglia application session. Famiglia methods can therefore initialize themselves without requiring the legacy dashboard/login orchestration first.
+`loginFamiglia()` obtains an OAuth token and loads the Famiglia session, profile and dashboard **without calling the legacy login endpoint**. It refreshes expired tokens through a new OAuth authorization rather than through the legacy refresh endpoint. For just a single Famiglia method, `bootstrapSession()` is still available.
 
 ## Famiglia API coverage
 
@@ -101,17 +99,20 @@ These calls modify real school data in Argo and should only be executed delibera
 
 The official Famiglia endpoint `POST /famiglia/pcto` exists, but the account used for migration testing returns HTTP 403 because PCTO visibility is not enabled by that school. Keeping the existing implementation preserves support for schools where the legacy call works, without inventing an unverified Famiglia response schema.
 
+## Current Argo OAuth consent flow
+
+The client accepts Argo's current login response, which may contain an OAuth consent continuation as an HTML 200 link instead of an HTTP redirect. The continuation URL and callback are validated against the expected OAuth state and client identifiers. The advertised didUp app version is `1.30.2`.
+
 ## Authentication compatibility
 
 The Famiglia session, profile, and dashboard state are separate from the historical client state.
 
 The public Famiglia methods use the new session path, while the existing `login()` / refresh / logout compatibility lifecycle still retains some legacy internal calls. This is intentional to avoid breaking existing consumers that depend on the historical `login()` return shape and dashboard behavior.
 
-New code should prefer:
+New code that needs the profile and dashboard should prefer:
 
 ```ts
-await client.bootstrapSession();
-const profile = await client.getProfilo();
+const { profile, dashboard } = await client.loginFamiglia();
 ```
 
 rather than depending on the legacy dashboard bootstrap when it is not needed.

@@ -5,3 +5,4 @@ export * from "./generateLoginLink";
 export * from "./getToken";
 export * from "./handleOperation";
 export * from "./randomString";
+export * from "./loginRedirect";
